@@ -2,6 +2,7 @@ package live.vio.VioUI.Components
 
 import live.vio.VioCore.configuration.VioConfiguration
 import live.vio.VioCore.managers.CampaignManager
+import live.vio.VioCore.models.Component
 import live.vio.VioCore.models.ProductSpotlightConfig
 import live.vio.VioUI.Managers.Product
 import live.vio.VioUI.Services.ProductService
@@ -37,6 +38,7 @@ class VioProductSpotlight(
 
     private var loadJob: Job? = null
     private var latestConfig: ProductSpotlightConfig? = null
+    private var latestComponent: Component? = null
 
     init {
         scope.launch {
@@ -51,13 +53,14 @@ class VioProductSpotlight(
                     hide()
                     return@collectLatest
                 }
-                loadProduct(config)
+                loadProduct(component, config)
             }
         }
     }
 
-    private fun loadProduct(config: ProductSpotlightConfig) {
+    private fun loadProduct(component: Component, config: ProductSpotlightConfig) {
         latestConfig = config
+        latestComponent = component
         val productId = config.productId.toIntOrNull()
         if (productId == null) {
             hide()
@@ -68,7 +71,7 @@ class VioProductSpotlight(
             _state.value = _state.value.copy(isLoading = true, errorMessage = null)
             val market = VioConfiguration.shared.state.value.market
             try {
-                val product = productService.loadProduct(productId, market.currencyCode, market.countryCode)
+                val product = productService.loadProduct(productId, market.currencyCode, market.countryCode, sponsorId = component.sponsorId)
                 _state.value = VioProductSpotlightState(
                     product = product,
                     highlightText = config.highlightText,
@@ -91,10 +94,12 @@ class VioProductSpotlight(
         loadJob?.cancel()
         _state.value = VioProductSpotlightState(isVisible = false)
         latestConfig = null
+        latestComponent = null
     }
 
     fun refresh() {
         val config = latestConfig ?: return
-        loadProduct(config)
+        val component = latestComponent ?: return
+        loadProduct(component, config)
     }
 }

@@ -607,6 +607,15 @@ class CampaignManager private constructor(
 
             response.components.forEach { componentResponse ->
                 val component = Component.fromResponse(componentResponse)
+                
+                if (component.sponsorId != null) {
+                    VioConfiguration.registerComponentSponsor(
+                        sponsorId = component.sponsorId,
+                        sponsorConfig = component.sponsor,
+                        commerceConfig = component.commerce
+                    )
+                }
+                
                 val existingIndex = merged.indexOfFirst {
                     it.id == component.id && it.locationId == component.locationId
                 }

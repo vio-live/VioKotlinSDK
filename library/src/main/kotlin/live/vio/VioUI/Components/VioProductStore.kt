@@ -55,6 +55,7 @@ class VioProductStore(
     private val lastConfigId = AtomicReference<String?>(null)
     private var lastProductIds: List<Int>? = null
     private var lastMode: String = "all"
+    private var lastSponsorId: Int? = null
 
     init {
         scope.launch {
@@ -113,11 +114,12 @@ class VioProductStore(
         )
         lastProductIds = ids
         lastMode = normalizedMode
+        lastSponsorId = component.sponsorId
         trackComponentView(component, config)
-        triggerLoad(normalizedMode, ids)
+        triggerLoad(normalizedMode, ids, component.sponsorId)
     }
 
-    private fun triggerLoad(mode: String, productIds: List<Int>?) {
+    private fun triggerLoad(mode: String, productIds: List<Int>?, sponsorId: Int?) {
         loadJob?.cancel()
         loadJob = scope.launch {
             _state.value = _state.value.copy(isLoading = true, errorMessage = null, isMarketUnavailable = false)
@@ -140,13 +142,13 @@ class VioProductStore(
 
             VioLogger.debug("Loading products - mode=$mode ids=${idsToUse ?: "all"}", LOGGER_TAG)
             try {
-                var products = productService.loadProducts(idsToUse, currency, country)
+                var products = productService.loadProducts(idsToUse, currency, country, sponsorId = sponsorId)
                 if (products.isEmpty() && filteredMode && hasValidIds) {
                     VioLogger.warning(
                         "Filtered mode returned no products, falling back to full load",
                         LOGGER_TAG,
                     )
-                    products = productService.loadProducts(null, currency, country)
+                    products = productService.loadProducts(null, currency, country, sponsorId = sponsorId)
                 }
 
                 val message = if (filteredMode && !hasValidIds && products.isEmpty()) {
@@ -196,6 +198,7 @@ class VioProductStore(
         lastConfigId.set(null)
         lastProductIds = null
         lastMode = "all"
+        lastSponsorId = null
     }
 
     private fun buildConfigId(config: ProductStoreConfig): String {
@@ -230,7 +233,7 @@ class VioProductStore(
 
     fun refresh() {
         if (!state.value.isVisible) return
-        triggerLoad(lastMode, lastProductIds)
+        triggerLoad(lastMode, lastProductIds, lastSponsorId)
     }
 }
 

@@ -118,7 +118,12 @@ class VioProductCarousel(
             _state.value = _state.value.copy(isLoading = true, errorMessage = null)
             val market = VioConfiguration.shared.state.value.market
             try {
-                val products = productService.loadProducts(productIds, market.currencyCode, market.countryCode)
+                val products = productService.loadProducts(
+                    productIds = productIds, 
+                    currency = market.currencyCode, 
+                    country = market.countryCode,
+                    sponsorId = currentComponent?.sponsorId
+                )
                 println("🎡 [VioProductCarousel] load success: got ${products.size} products. IDs=${products.map { it.id }}")
                 _state.value = _state.value.copy(
                     products = products,

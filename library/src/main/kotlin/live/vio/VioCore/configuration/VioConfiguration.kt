@@ -223,6 +223,45 @@ class VioConfiguration private constructor() {
             }
         }
 
+        fun registerComponentSponsor(
+            sponsorId: Int,
+            sponsorConfig: live.vio.VioCore.models.SponsorConfig?,
+            commerceConfig: live.vio.VioCore.models.CommerceConfig?
+        ) {
+            val current = shared._state.value
+            if (current.primarySponsor?.id == sponsorId) return
+            
+            val existing = current.secondarySponsors.firstOrNull { it.id == sponsorId }
+            val newSponsor = existing?.copy(
+                name = sponsorConfig?.name ?: existing.name,
+                avatarUrl = sponsorConfig?.avatarUrl ?: existing.avatarUrl,
+                logoUrl = sponsorConfig?.logoUrl ?: existing.logoUrl,
+                primaryColor = sponsorConfig?.primaryColor ?: existing.primaryColor,
+                secondaryColor = sponsorConfig?.secondaryColor ?: existing.secondaryColor,
+                commerce = commerceConfig?.let {
+                    VioSponsor.CommerceBlock(
+                        apiKey = it.apiKey ?: existing.commerce?.apiKey ?: "",
+                        channelId = it.channelId?.toString() ?: existing.commerce?.channelId
+                    )
+                } ?: existing.commerce
+            ) ?: VioSponsor(
+                id = sponsorId,
+                name = sponsorConfig?.name ?: "Sponsor $sponsorId",
+                avatarUrl = sponsorConfig?.avatarUrl,
+                logoUrl = sponsorConfig?.logoUrl,
+                primaryColor = sponsorConfig?.primaryColor,
+                secondaryColor = sponsorConfig?.secondaryColor,
+                commerce = commerceConfig?.apiKey?.let {
+                    VioSponsor.CommerceBlock(apiKey = it, channelId = commerceConfig.channelId?.toString())
+                }
+            )
+
+            val updatedSponsors = current.secondarySponsors.filter { it.id != sponsorId } + newSponsor
+            shared._state.value = current.copy(secondarySponsors = updatedSponsors)
+            
+            // Also notify CommerceSdkClientProvider maybe or it will pick it up on next client() call
+        }
+
         fun applySdkBootstrapCommerce(apiKey: String?, graphQLURL: String?) {
             val current = shared._state.value
             shared._state.value = current.copy(

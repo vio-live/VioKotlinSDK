@@ -152,6 +152,9 @@ data class ComponentResponse(
     @JsonProperty("name") val name: String? = null,
     @JsonProperty("config") val config: Map<String, Any?>? = null,
     @JsonProperty("isActive") val isActive: Boolean? = null,
+    @JsonProperty("sponsorId") val sponsorId: Int? = null,
+    @JsonProperty("sponsor") val sponsor: SponsorConfig? = null,
+    @JsonProperty("commerce") val commerce: CommerceConfig? = null,
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class ComponentData(
@@ -177,6 +180,9 @@ data class Component(
      * ID de ubicación (slot) para asignación desde el dashboard.
      */
     val locationId: String? = null,
+    val sponsorId: Int? = null,
+    val sponsor: SponsorConfig? = null,
+    val commerce: CommerceConfig? = null,
 ) {
     val isActive: Boolean get() = status == "active"
 
@@ -232,6 +238,9 @@ data class Component(
                 status = status,
                 matchContext = null,
                 locationId = response.locationId,
+                sponsorId = response.sponsorId,
+                sponsor = response.sponsor,
+                commerce = response.commerce,
             )
         }
     }
@@ -432,7 +441,10 @@ data class ComponentDiscoveryItem(
     @JsonProperty("config") val config: Map<String, Any?> = emptyMap(),
     @JsonProperty("status") val status: String? = null,
     @JsonProperty("matchContext") val matchContext: MatchContext? = null,
-    @JsonProperty("locationId") val locationId: String? = null
+    @JsonProperty("locationId") val locationId: String? = null,
+    @JsonProperty("sponsorId") val sponsorId: Int? = null,
+    @JsonProperty("sponsor") val sponsor: SponsorConfig? = null,
+    @JsonProperty("commerce") val commerce: CommerceConfig? = null,
 ) {
     fun toComponent(): Component = Component(
         id = id,
@@ -441,6 +453,9 @@ data class ComponentDiscoveryItem(
         config = config,
         status = status,
         matchContext = matchContext,
-        locationId = locationId
+        locationId = locationId,
+        sponsorId = sponsorId,
+        sponsor = sponsor,
+        commerce = commerce,
     )
 }
