@@ -62,7 +62,7 @@ fun VioProductSpotlight(
             showAddToCartButton = showAddToCartButton,
             showSponsor = showSponsor,
             sponsorPosition = sponsorPosition,
-            sponsorLogoUrl = sponsorLogoUrl,
+            sponsorLogoUrl = sponsorLogoUrl ?: state.sponsorLogoUrl,
             imageBackgroundColor = imageBackgroundColor,
         )
         else -> SpotlightEmpty(modifier)

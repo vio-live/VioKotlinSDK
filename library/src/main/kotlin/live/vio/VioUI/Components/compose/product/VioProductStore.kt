@@ -75,7 +75,7 @@ fun VioProductStore(
         state.displayType == ProductStoreDisplayType.GRID -> SponsorBadgeContainer(
             showSponsor = showSponsor,
             sponsorPosition = sponsorPosition,
-            sponsorLogoUrl = sponsorLogoUrl,
+            sponsorLogoUrl = sponsorLogoUrl ?: state.sponsorLogoUrl,
         ) {
             GridContent(
                 products = state.products,
@@ -89,7 +89,7 @@ fun VioProductStore(
         else -> SponsorBadgeContainer(
             showSponsor = showSponsor,
             sponsorPosition = sponsorPosition,
-            sponsorLogoUrl = sponsorLogoUrl,
+            sponsorLogoUrl = sponsorLogoUrl ?: state.sponsorLogoUrl,
         ) {
             ListContent(
                 products = state.products,

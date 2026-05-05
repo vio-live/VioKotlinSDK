@@ -32,6 +32,7 @@ data class VioProductCarouselState(
     val componentName: String? = null,
     val campaignId: Int? = null,
     val hasProductIds: Boolean = false,
+    val sponsorLogoUrl: String? = null,
 )
 
 enum class ProductCarouselLayout {
@@ -105,6 +106,7 @@ class VioProductCarousel(
             componentName = component.name,
             campaignId = campaignManager.currentCampaign.value?.id,
             hasProductIds = ids.isNotEmpty(),
+            sponsorLogoUrl = component.sponsor?.logoUrl,
         )
         val idsOrNull = ids.takeIf { it.isNotEmpty() }
         latestProductIds = ids

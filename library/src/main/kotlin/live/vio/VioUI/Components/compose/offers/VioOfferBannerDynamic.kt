@@ -35,6 +35,7 @@ fun VioOfferBannerDynamic(
     val componentManager = remember { ComponentManager.shared }
     val campaignManager = remember { CampaignManager.shared }
     val activeBanner by componentManager.activeBanner.collectAsState()
+    val activeBannerComponent by componentManager.activeBannerComponent.collectAsState()
     val isConnected by componentManager.isConnected.collectAsState()
     val isCampaignActive by campaignManager.isCampaignActive.collectAsState()
     val currentCampaign by campaignManager.currentCampaign.collectAsState()
@@ -101,7 +102,7 @@ fun VioOfferBannerDynamic(
                     imageLoader = imageLoader,
                     showSponsor = showSponsor,
                     sponsorPosition = sponsorPosition,
-                    sponsorLogoUrl = sponsorLogoUrl,
+                    sponsorLogoUrl = sponsorLogoUrl ?: activeBannerComponent?.sponsor?.logoUrl,
                 )
             }
         }

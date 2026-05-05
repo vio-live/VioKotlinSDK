@@ -23,6 +23,7 @@ data class VioProductSpotlightState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isVisible: Boolean = false,
+    val sponsorLogoUrl: String? = null,
 )
 
 class VioProductSpotlight(
@@ -77,6 +78,7 @@ class VioProductSpotlight(
                     highlightText = config.highlightText,
                     isLoading = false,
                     isVisible = true,
+                    sponsorLogoUrl = component.sponsor?.logoUrl,
                 )
             } catch (error: ProductServiceError) {
                 _state.value = VioProductSpotlightState(
@@ -85,6 +87,7 @@ class VioProductSpotlight(
                     isLoading = false,
                     errorMessage = error.message,
                     isVisible = error !is ProductServiceError.ProductNotFound,
+                    sponsorLogoUrl = component.sponsor?.logoUrl,
                 )
             }
         }

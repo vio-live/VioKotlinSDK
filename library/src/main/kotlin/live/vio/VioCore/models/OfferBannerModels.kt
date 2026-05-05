@@ -192,6 +192,9 @@ class ComponentManager private constructor(
     private val _activeBanner = MutableStateFlow<OfferBannerConfig?>(null)
     val activeBanner: StateFlow<OfferBannerConfig?> = _activeBanner.asStateFlow()
 
+    private val _activeBannerComponent = MutableStateFlow<live.vio.VioCore.models.Component?>(null)
+    val activeBannerComponent: StateFlow<live.vio.VioCore.models.Component?> = _activeBannerComponent.asStateFlow()
+
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
@@ -206,8 +209,10 @@ class ComponentManager private constructor(
                         JsonUtils.mapper.readValue(json, OfferBannerConfig::class.java)
                     }.getOrNull()
                     _activeBanner.value = config
+                    _activeBannerComponent.value = bannerComponent
                 } else {
                     _activeBanner.value = null
+                    _activeBannerComponent.value = null
                 }
             }
         }

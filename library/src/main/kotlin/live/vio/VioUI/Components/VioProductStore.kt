@@ -31,6 +31,7 @@ data class VioProductStoreState(
     val mode: String = "all",
     val productIds: List<Int>? = null,
     val isMarketUnavailable: Boolean = false,
+    val sponsorLogoUrl: String? = null,
 )
 
 enum class ProductStoreDisplayType { GRID, LIST }
@@ -111,6 +112,7 @@ class VioProductStore(
             mode = normalizedMode,
             productIds = ids,
             isMarketUnavailable = false,
+            sponsorLogoUrl = component.sponsor?.logoUrl,
         )
         lastProductIds = ids
         lastMode = normalizedMode
