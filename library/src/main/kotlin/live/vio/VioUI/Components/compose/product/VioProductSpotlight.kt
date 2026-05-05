@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun VioProductSpotlight(
     componentId: String? = null,
+    locationId: String? = null,
     cartManager: CartManager,
     modifier: Modifier = Modifier,
     variantOverride: VioProductCardConfig.Variant? = null,
@@ -41,7 +42,7 @@ fun VioProductSpotlight(
     sponsorPosition: String? = "topRight",
     sponsorLogoUrl: String? = null,
     imageBackgroundColor: Color = Color.White,
-    controller: VioProductSpotlight = remember(componentId) { VioProductSpotlight(componentId) },
+    controller: VioProductSpotlight = remember(componentId, locationId) { VioProductSpotlight(componentId, locationId) },
     onProductTap: (Product) -> Unit = {},
     isCampaignGated: Boolean = true,
 ) {

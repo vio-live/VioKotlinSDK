@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun VioProductStore(
     componentId: String? = null,
+    locationId: String? = null,
     cartManager: CartManager,
     modifier: Modifier = Modifier,
     isScrollEnabled: Boolean = true,
@@ -56,7 +57,7 @@ fun VioProductStore(
     sponsorPosition: String? = "topRight",
     sponsorLogoUrl: String? = null,
     imageBackgroundColor: Color = Color.White,
-    controller: VioProductStore = remember(componentId) { VioProductStore(componentId) },
+    controller: VioProductStore = remember(componentId, locationId) { VioProductStore(componentId, locationId) },
     isCampaignGated: Boolean = true,
 ) {
     val state by controller.state.collectAsState()

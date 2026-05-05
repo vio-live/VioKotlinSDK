@@ -28,3 +28,14 @@ typealias VioLiveShowConfiguration = LiveShowConfiguration
 typealias VioConfigurationLoader = ConfigurationLoader
 typealias VioSDKLogger = VioLogger
 typealias VioSDKCacheManager = CacheManager
+
+typealias VioPlacementLocation = live.vio.VioCore.placements.VioPlacementLocation
+typealias VioPlacementComponentRegistration = live.vio.VioCore.placements.VioPlacementComponentRegistration
+
+fun registerPlacementLocation(location: VioPlacementLocation) {
+    live.vio.VioCore.placements.VioPlacementRegistry.registerLocation(location)
+}
+
+fun registerPlacementComponent(registration: VioPlacementComponentRegistration) {
+    live.vio.VioCore.placements.VioPlacementRegistry.registerComponent(registration)
+}

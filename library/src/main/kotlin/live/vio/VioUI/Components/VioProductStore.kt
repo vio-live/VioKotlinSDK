@@ -37,6 +37,7 @@ enum class ProductStoreDisplayType { GRID, LIST }
 
 class VioProductStore(
     private val componentId: String? = null,
+    private val locationId: String? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val campaignManager: CampaignManager = CampaignManager.shared,
     private val productService: ProductService = ProductService,
@@ -58,7 +59,7 @@ class VioProductStore(
     init {
         scope.launch {
             campaignManager.activeComponents.collectLatest { components ->
-                val component = components.findComponent(COMPONENT_TYPE, componentId)
+                val component = components.findComponent(COMPONENT_TYPE, locationId, componentId)
                 if (component == null || !VioConfiguration.shared.shouldUseSDK) {
                     hide()
                     return@collectLatest

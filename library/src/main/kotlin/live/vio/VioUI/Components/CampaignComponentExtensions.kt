@@ -33,9 +33,12 @@ fun List<Component>.findComponent(
         }
     }
     if (found != null) {
-        live.vio.VioCore.utils.VioLogger.debug("[CampaignManager] findComponent: Found match id=${found.id}, locationId=${found.locationId}")
+        live.vio.VioCore.utils.VioLogger.debug("[CampaignManager] findComponent: Found match id=${found.id}, type=${found.type}, locationId=${found.locationId}, componentId=${found.id}")
     } else {
-        live.vio.VioCore.utils.VioLogger.debug("[CampaignManager] findComponent: No match found")
+        live.vio.VioCore.utils.VioLogger.debug("[CampaignManager] findComponent: No match found for type=$type, locationId=$locationId, componentId=$componentId among ${this.size} active components")
+        if (this.isNotEmpty()) {
+            live.vio.VioCore.utils.VioLogger.debug("[CampaignManager] findComponent: active components summary=${this.map { "[id=${it.id} type=${it.type} location=${it.locationId} match=${it.matchContext?.matchId}]" }}")
+        }
     }
     return found
 }

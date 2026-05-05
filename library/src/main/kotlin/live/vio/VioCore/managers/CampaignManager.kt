@@ -14,6 +14,7 @@ import live.vio.VioCore.models.ComponentStatusChangedEvent
 import live.vio.VioCore.models.*
 import live.vio.VioEngagementSystem.models.Contest
 import live.vio.VioEngagementSystem.models.Poll
+import live.vio.VioCore.placements.VioPlacementManifestUploader
 import live.vio.VioCore.utils.VioLogger
 import live.vio.sdk.core.helpers.JsonUtils
 import java.net.HttpURLConnection
@@ -201,9 +202,11 @@ class CampaignManager private constructor(
     }
 
     fun setMatchId(matchId: String?) {
-        currentMatchId = matchId
-        currentMatchContext = matchId?.let { MatchContext(matchId = it) }
-        VioLogger.debug("Current Match ID set to: $matchId", COMPONENT)
+        if (matchId == null) {
+            setMatchContext(null)
+            return
+        }
+        setMatchContext(MatchContext(matchId = matchId))
     }
 
     /**
@@ -234,6 +237,7 @@ class CampaignManager private constructor(
         currentMatchId = matchContext.matchId
 
         VioLogger.debug("Current Match Context set to: $matchContext", COMPONENT)
+        VioLogger.info("Refreshing campaigns for context=${matchContext.matchId}", COMPONENT)
 
         // Recargar campañas y componentes para este contexto
         scope.launch {
@@ -261,6 +265,8 @@ class CampaignManager private constructor(
             // Usar modo legacy (campaña única)
             VioLogger.debug("Legacy mode, initializing campaign: $campaignId", COMPONENT)
             initializeCampaign()
+        } else {
+            VioLogger.warning("No auto-discovery enabled and no configured campaignId; nothing to refresh for match ${context.matchId}", COMPONENT)
         }
         
         // Filtrar componentes por contexto
@@ -295,7 +301,10 @@ class CampaignManager private constructor(
         }
         
         if (filtered.size != _activeComponents.value.size || allComponents.isEmpty()) {
-            VioLogger.debug("Filtered components: ${allComponents.size} -> ${filtered.size} for match: ${context?.matchId ?: "none"}", COMPONENT)
+            VioLogger.info("Filtered components: ${allComponents.size} -> ${filtered.size} for match: ${context?.matchId ?: "none"}", COMPONENT)
+            if (filtered.isEmpty() && allComponents.isNotEmpty()) {
+                VioLogger.warning("No matching components remain after match filtering. allComponents ids=${allComponents.map { it.id }} locations=${allComponents.map { it.locationId }} matchIds=${allComponents.map { it.matchContext?.matchId }}", COMPONENT)
+            }
             _activeComponents.value = filtered
             scope.launch {
                 CacheManager.shared.saveComponents(filtered)
@@ -446,6 +455,8 @@ class CampaignManager private constructor(
         }
         SponsorAssets.update(mappedCampaign?.sponsor)
         emitLogoChanged(oldLogoUrl, mappedCampaign?.campaignLogo)
+        uploadPlacementManifestIfPossible()
+        fetchAndApplyCampaignComponentsIfPossible()
 
         if (resolvedCampaignId != null && resolvedCampaignId > 0) {
             connectWebSocket(resolvedCampaignId)
@@ -554,6 +565,88 @@ class CampaignManager private constructor(
         VioLogger.debug("Skipping component polling; WS is authoritative in v2", COMPONENT)
     }
 
+    private suspend fun fetchAndApplyCampaignComponentsIfPossible() {
+        val campaign = _currentCampaign.value
+        if (campaign == null) {
+            VioLogger.debug("fetchAndApplyCampaignComponents: skipped — no current campaign", COMPONENT)
+            return
+        }
+
+        val effectiveApiKey = campaignAdminApiKey
+            ?.takeIf { it.isNotBlank() }
+            ?: campaignApiKey?.takeIf { it.isNotBlank() }
+            ?: apiKey
+
+        if (effectiveApiKey.isBlank()) {
+            VioLogger.warning("fetchAndApplyCampaignComponents: skipped — no API key available", COMPONENT)
+            return
+        }
+
+        val baseUrl = restApiBaseUrl.ifBlank { "https://api-dev.vio.live" }.trimEnd('/')
+        val url = URL("$baseUrl/v2/mobile/campaigns/${campaign.id}/components")
+
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15_000
+            readTimeout = 15_000
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("X-API-Key", effectiveApiKey)
+        }
+
+        try {
+            val status = connection.responseCode
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+
+            if (status !in 200..299) {
+                VioLogger.warning("fetchAndApplyCampaignComponents: HTTP status=$status body=$body", COMPONENT)
+                return
+            }
+
+            val response = JsonUtils.mapper.readValue(body, ComponentsResponseWrapper::class.java)
+            val merged = allComponents.toMutableList()
+
+            response.components.forEach { componentResponse ->
+                val component = Component.fromResponse(componentResponse)
+                val existingIndex = merged.indexOfFirst {
+                    it.id == component.id && it.locationId == component.locationId
+                }
+                if (existingIndex >= 0) {
+                    merged[existingIndex] = component
+                } else {
+                    merged.add(component)
+                }
+            }
+
+            allComponents = merged
+            filterComponentsByContext(currentMatchContext)
+            CacheManager.shared.saveComponents(_activeComponents.value)
+            VioLogger.info("Fetched /v2/mobile/campaigns/${campaign.id}/components → ${response.components.size} component(s) merged", COMPONENT)
+        } catch (error: Throwable) {
+            VioLogger.warning("fetchAndApplyCampaignComponents failed (non-fatal): ${error.message}", COMPONENT)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private suspend fun uploadPlacementManifestIfPossible() {
+        val effectiveApiKey = campaignAdminApiKey
+            ?.takeIf { it.isNotBlank() }
+            ?: campaignApiKey?.takeIf { it.isNotBlank() }
+            ?: apiKey
+
+        if (effectiveApiKey.isBlank()) {
+            VioLogger.info("Skipping placement manifest upload: no API key available", COMPONENT)
+            return
+        }
+
+        val baseUrl = restApiBaseUrl.ifBlank { "https://api-dev.vio.live" }
+        VioLogger.info("Attempting placement manifest upload to $baseUrl with apiKeySource=${if (campaignAdminApiKey?.isNotBlank() == true) "campaignAdminApiKey" else if (campaignApiKey?.isNotBlank() == true) "campaignApiKey" else "apiKey"}", COMPONENT)
+        try {
+            VioPlacementManifestUploader.upload(baseUrl, effectiveApiKey)
+        } catch (error: Throwable) {
+            VioLogger.error("Placement manifest upload failed: ${error.message}", COMPONENT)
+        }
+    }
 
 
     private suspend fun connectWebSocket(campaignId: Int) {

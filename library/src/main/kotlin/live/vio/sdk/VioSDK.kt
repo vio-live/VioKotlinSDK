@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import live.vio.VioCore.configuration.VioConfiguration
 import live.vio.VioCore.configuration.VioEnvironment
 import live.vio.VioCore.managers.CampaignManager
+import live.vio.VioCore.models.MatchContext
 import live.vio.VioCore.utils.VioLogger
 
 /**
@@ -72,7 +73,9 @@ object VioSDK {
      * En Kotlin se modela como un `matchId` de campaña.
      */
     fun setContent(contentId: String) {
-        CampaignManager.shared.setMatchId(contentId)
+        println("🎯 [VioSDK] setContent called with contentId=$contentId")
+        VioLogger.debug("Setting content/match context to $contentId", "VioSDK")
+        CampaignManager.shared.setMatchContext(MatchContext(matchId = contentId))
     }
 
     /**

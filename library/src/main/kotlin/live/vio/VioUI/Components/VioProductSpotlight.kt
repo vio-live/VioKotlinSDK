@@ -26,6 +26,7 @@ data class VioProductSpotlightState(
 
 class VioProductSpotlight(
     private val componentId: String? = null,
+    private val locationId: String? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val campaignManager: CampaignManager = CampaignManager.shared,
     private val productService: ProductService = ProductService,
@@ -40,7 +41,7 @@ class VioProductSpotlight(
     init {
         scope.launch {
             campaignManager.activeComponents.collectLatest { components ->
-                val component = components.findComponent("product_spotlight", componentId)
+                val component = components.findComponent("product_spotlight", locationId, componentId)
                 if (component == null || !VioConfiguration.shared.shouldUseSDK) {
                     hide()
                     return@collectLatest
