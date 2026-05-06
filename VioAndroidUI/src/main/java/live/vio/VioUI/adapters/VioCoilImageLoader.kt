@@ -12,7 +12,11 @@ import live.vio.VioUI.Components.compose.product.VioImageLoader
 import live.vio.VioUI.Components.compose.product.VioImageLoaderDefaults
 import live.vio.VioUI.Components.compose.product.VioPlaceholderImageLoader
 import java.io.File
-
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 
 private const val TAG = "ImageLoader"
 
@@ -47,7 +51,8 @@ val VioCoilImageLoader: VioImageLoader = VioImageLoader { url, contentDescriptio
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    val imageLoader = ImageLoader.Builder(context)
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
         .memoryCache {
             MemoryCache.Builder(context)
                 .maxSizePercent(0.20)
@@ -63,11 +68,14 @@ val VioCoilImageLoader: VioImageLoader = VioImageLoader { url, contentDescriptio
             add(coil.decode.SvgDecoder.Factory())
         }
         .build()
+    }
 
     // Use AsyncImage for better scrolling performance than SubcomposeAsyncImage
+    var retryKey by remember { mutableStateOf(0) }
     coil.compose.AsyncImage(
         model = coil.request.ImageRequest.Builder(context)
             .data(url)
+            .setParameter("retry_key", retryKey) 
             .crossfade(true)
             .diskCachePolicy(coil.request.CachePolicy.ENABLED)
             .networkCachePolicy(coil.request.CachePolicy.ENABLED)
