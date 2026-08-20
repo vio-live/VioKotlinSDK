@@ -33,12 +33,43 @@ object AnalyticsManager {
     private val trackedComponentViews = mutableSetOf<String>()
     private val componentViewCounts = mutableMapOf<String, Int>()
     private val impressionTimers = mutableMapOf<String, Long>()
+    /** Once-per-(collector session, component) guard for the Vio pipeline. */
+    private val collectorImpressionKeys = mutableSetOf<String>()
+
+    /** Legacy componentId strings can be a numeric campaign_component id or a
+     *  template slug — route each to the right contract dimension. */
+    private fun contractContext(
+        componentId: String?,
+        componentType: String?,
+        campaignId: Int?,
+    ): VioAnalyticsClient.Context {
+        val numeric = componentId?.toIntOrNull()
+        return VioAnalyticsClient.Context(
+            campaignId = campaignId,
+            campaignComponentId = numeric,
+            componentTemplateId = when {
+                numeric == null && componentId != null -> componentId
+                else -> componentType
+            },
+        )
+    }
     private var distinctId: String? = null
     private var mixpanelClient: MixpanelClient? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun configure(config: AnalyticsConfiguration) {
         configuration = config
+
+        // Vio collector transport (F5) — the primary pipeline, independent
+        // of the legacy Mixpanel path. Env-aware endpoint, api-key auth.
+        if (config.sendToVio) {
+            val isProduction =
+                VioConfiguration.shared.state.value.environment.name == "PRODUCTION"
+            val base = config.eventsBase ?: VioAnalyticsClient.defaultEventsBase(isProduction)
+            VioAnalyticsClient.start(base) {
+                VioConfiguration.shared.state.value.apiKey.takeIf { it.isNotBlank() }
+            }
+        }
         sessionId = UUID.randomUUID().toString()
         trackedComponentViews.clear()
         componentViewCounts.clear()
@@ -54,7 +85,17 @@ object AnalyticsManager {
 
     fun identify(userId: String) {
         distinctId = userId
+        // Explicit partner user id — forwarded to the Vio pipeline as-is.
+        // (Auto-identify from checkout emails below does NOT reach the
+        // collector — PII never leaves for Vio.)
+        if (userId != lastAutoIdentifiedEmail) {
+            VioAnalyticsClient.identify(userId)
+        }
     }
+
+    /** Marks emails auto-identified by trackCheckoutStarted so they are
+     *  kept OUT of the Vio pipeline (vendor-only legacy behaviour). */
+    private var lastAutoIdentifiedEmail: String? = null
 
     fun setUserProperties(properties: Map<String, Any?>) {
         val client = mixpanelClient ?: return
@@ -81,7 +122,23 @@ object AnalyticsManager {
         campaignId: Int? = null,
         metadata: Map<String, Any?>? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackComponentViews) return
+        val vendorOn = configuration.enabled && configuration.trackComponentViews
+        val vioOn = configuration.sendToVio && configuration.trackComponentViews
+        if (!vendorOn && !vioOn) return
+
+        val activeCampaign = campaignId ?: CampaignManager.shared.currentCampaign.value?.id
+        if (vioOn) {
+            // Contract rule: ONE component_impression per (session, component),
+            // scoped to the collector's rolling session.
+            val collectorKey = "${'$'}{VioAnalyticsClient.currentSessionId}|${'$'}componentId-${'$'}componentType"
+            if (collectorImpressionKeys.add(collectorKey)) {
+                VioAnalyticsClient.track(
+                    name = "component_impression",
+                    context = contractContext(componentId, componentType, activeCampaign),
+                )
+            }
+        }
+        if (!vendorOn) return
         val state = VioConfiguration.shared.state.value
         val activeCampaignId = campaignId ?: CampaignManager.shared.currentCampaign.value?.id
         val properties = mutableMapOf<String, Any?>(
@@ -124,7 +181,22 @@ object AnalyticsManager {
         campaignId: Int? = null,
         metadata: Map<String, Any?>? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackComponentClicks) return
+        val vendorOn = configuration.enabled && configuration.trackComponentClicks
+        val vioOn = configuration.sendToVio && configuration.trackComponentClicks
+        if (!vendorOn && !vioOn) return
+        if (vioOn) {
+            VioAnalyticsClient.track(
+                name = "component_click",
+                context = contractContext(
+                    componentId, componentType,
+                    campaignId ?: CampaignManager.shared.currentCampaign.value?.id,
+                ),
+                props = kotlinx.serialization.json.buildJsonObject {
+                    put("action", kotlinx.serialization.json.JsonPrimitive(action))
+                },
+            )
+        }
+        if (!vendorOn) return
         val properties = mutableMapOf<String, Any?>(
             "component_id" to componentId,
             "component_type" to componentType,
@@ -161,7 +233,28 @@ object AnalyticsManager {
         componentId: String? = null,
         componentType: String? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackProductEvents) return
+        val vendorOn = configuration.enabled && configuration.trackProductEvents
+        val vioOn = configuration.sendToVio && configuration.trackProductEvents
+        if (!vendorOn && !vioOn) return
+        if (vioOn) {
+            VioAnalyticsClient.track(
+                name = "view_item",
+                context = contractContext(
+                    componentId, componentType,
+                    CampaignManager.shared.currentCampaign.value?.id,
+                ),
+                commerce = VioAnalyticsClient.Commerce(
+                    items = listOf(
+                        VioAnalyticsClient.Item(
+                            productId = productId, name = productName, price = productPrice,
+                        ),
+                    ),
+                    value = productPrice,
+                    currency = productCurrency,
+                ),
+            )
+        }
+        if (!vendorOn) return
         val props = mutableMapOf<String, Any?>(
             "product_id" to productId,
             "product_name" to productName,
@@ -183,7 +276,29 @@ object AnalyticsManager {
         source: String? = null,
         componentId: String? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackProductEvents) return
+        val vendorOn = configuration.enabled && configuration.trackProductEvents
+        val vioOn = configuration.sendToVio && configuration.trackProductEvents
+        if (!vendorOn && !vioOn) return
+        if (vioOn) {
+            VioAnalyticsClient.track(
+                name = "add_to_cart",
+                context = contractContext(
+                    componentId, null,
+                    CampaignManager.shared.currentCampaign.value?.id,
+                ),
+                commerce = VioAnalyticsClient.Commerce(
+                    items = listOf(
+                        VioAnalyticsClient.Item(
+                            productId = productId, name = productName,
+                            price = productPrice, quantity = quantity,
+                        ),
+                    ),
+                    value = productPrice?.times(quantity),
+                    currency = productCurrency,
+                ),
+            )
+        }
+        if (!vendorOn) return
         val props = mutableMapOf<String, Any?>(
             "product_id" to productId,
             "product_name" to productName,
@@ -209,11 +324,27 @@ object AnalyticsManager {
         userLastName: String? = null,
         userId: String? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackTransactions) return
+        val vendorOn = configuration.enabled && configuration.trackTransactions
+        val vioOn = configuration.sendToVio && configuration.trackTransactions
+        if (!vendorOn && !vioOn) return
+        if (vioOn) {
+            VioAnalyticsClient.track(
+                name = "begin_checkout",
+                context = contractContext(null, null, CampaignManager.shared.currentCampaign.value?.id),
+                commerce = VioAnalyticsClient.Commerce(value = cartValue, currency = currency),
+                props = kotlinx.serialization.json.buildJsonObject {
+                    put("checkout_id", kotlinx.serialization.json.JsonPrimitive(checkoutId))
+                    put("product_count", kotlinx.serialization.json.JsonPrimitive(productCount))
+                },
+            )
+        }
+        if (!vendorOn) return
 
         val normalizedEmail = userEmail?.takeIf { it.isNotBlank() }
         if (!normalizedEmail.isNullOrBlank()) {
+            lastAutoIdentifiedEmail = normalizedEmail
             identify(normalizedEmail)
+            lastAutoIdentifiedEmail = null
             val userProperties = mutableMapOf<String, Any?>(
                 "email" to normalizedEmail,
                 "last_checkout_date" to System.currentTimeMillis() / 1000.0,
@@ -258,7 +389,32 @@ object AnalyticsManager {
         shipping: Double? = null,
         tax: Double? = null,
     ) {
-        if (!configuration.enabled || !configuration.trackTransactions) return
+        val vendorOn = configuration.enabled && configuration.trackTransactions
+        val vioOn = configuration.sendToVio && configuration.trackTransactions
+        if (!vendorOn && !vioOn) return
+        if (vioOn) {
+            val contractItems = products.mapNotNull { product ->
+                val id = product["product_id"] ?: product["id"] ?: return@mapNotNull null
+                VioAnalyticsClient.Item(
+                    productId = id.toString(),
+                    name = (product["name"] ?: product["product_name"]) as? String,
+                    price = (product["price"] as? Number)?.toDouble(),
+                    quantity = (product["quantity"] as? Number)?.toInt(),
+                )
+            }
+            VioAnalyticsClient.track(
+                name = "purchase",
+                context = contractContext(null, null, CampaignManager.shared.currentCampaign.value?.id),
+                commerce = VioAnalyticsClient.Commerce(
+                    items = contractItems.ifEmpty { null },
+                    value = revenue,
+                    currency = currency,
+                    orderId = transactionId ?: checkoutId,
+                    paymentMethod = paymentMethod,
+                ),
+            )
+        }
+        if (!vendorOn) return
         val sanitizedProducts = products.map { sanitizeProperties(it) }
         val props = mutableMapOf<String, Any?>(
             "checkout_id" to checkoutId,

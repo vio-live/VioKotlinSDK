@@ -16,6 +16,12 @@ data class AnalyticsConfiguration(
     val trackProductEvents: Boolean = true,
     val autocapture: Boolean = false,
     val recordSessionsPercent: Int = 0,
+    /** Vio collector pipeline (contract v1) — on by default, independent of
+     *  the legacy Mixpanel path. See [live.vio.VioCore.analytics.VioAnalyticsClient]. */
+    val sendToVio: Boolean = true,
+    /** Override the collector base URL (default is env-aware:
+     *  events-dev / events.vio.live). */
+    val eventsBase: String? = null,
 ) {
     companion object {
         fun default(): AnalyticsConfiguration = AnalyticsConfiguration()
