@@ -5,7 +5,7 @@
         <domain includeSubdomains="true">graph-ql.vio.live</domain>
         <domain includeSubdomains="true">api-ecom-dev.vio.live</domain>
         <domain includeSubdomains="true">api-ecom.vio.live</domain>
-        <domain includeSubdomains="true">api-dev.vio.live</domain>
+        <domain includeSubdomains="true">api-staging.vio.live</domain>
         <domain includeSubdomains="true">api.vio.live</domain>
         <domain includeSubdomains="true">x.klarnacdn.net</domain>
         <domain includeSubdomains="true">klarna.com</domain>

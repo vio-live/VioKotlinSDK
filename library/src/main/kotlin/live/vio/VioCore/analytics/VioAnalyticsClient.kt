@@ -373,7 +373,7 @@ object VioAnalyticsClient {
 
     /** Collector base per environment (override via AnalyticsConfiguration.eventsBase). */
     fun defaultEventsBase(isProduction: Boolean): String =
-        if (isProduction) "https://events.vio.live" else "https://events-dev.vio.live"
+        if (isProduction) "https://events.vio.live" else "https://events-staging.vio.live"
 
     /** Test hook — full reset. */
     internal fun resetForTesting() {
