@@ -407,7 +407,7 @@ class CampaignManager private constructor(
             return
         }
 
-        val baseUrl = baseUrlOverride ?: restApiBaseUrl.ifBlank { "https://api-dev.vio.live" }
+        val baseUrl = baseUrlOverride ?: restApiBaseUrl.ifBlank { "https://api-staging.vio.live" }
         val service = VioSDKConfigService()
         val bootstrap = service.fetchConfig(apiKey = effectiveApiKey, baseUrl = baseUrl) ?: run {
             VioLogger.warning("v2 bootstrap unavailable; preserving current campaign state", COMPONENT)
@@ -582,7 +582,7 @@ class CampaignManager private constructor(
             return
         }
 
-        val baseUrl = restApiBaseUrl.ifBlank { "https://api-dev.vio.live" }.trimEnd('/')
+        val baseUrl = restApiBaseUrl.ifBlank { "https://api-staging.vio.live" }.trimEnd('/')
         val url = URL("$baseUrl/v2/mobile/campaigns/${campaign.id}/components")
 
         val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -648,7 +648,7 @@ class CampaignManager private constructor(
             return
         }
 
-        val baseUrl = restApiBaseUrl.ifBlank { "https://api-dev.vio.live" }
+        val baseUrl = restApiBaseUrl.ifBlank { "https://api-staging.vio.live" }
         VioLogger.info("Attempting placement manifest upload to $baseUrl with apiKeySource=${if (campaignAdminApiKey?.isNotBlank() == true) "campaignAdminApiKey" else if (campaignApiKey?.isNotBlank() == true) "campaignApiKey" else "apiKey"}", COMPONENT)
         try {
             VioPlacementManifestUploader.upload(baseUrl, effectiveApiKey)

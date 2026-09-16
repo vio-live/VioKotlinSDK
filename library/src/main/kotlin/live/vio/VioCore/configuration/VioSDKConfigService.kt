@@ -19,7 +19,7 @@ class VioSDKConfigService(
 
     companion object {
         private const val COMPONENT = "VioSDKConfigService"
-        private const val DEFAULT_BASE_URL = "https://api-dev.vio.live"
+        private const val DEFAULT_BASE_URL = "https://api-staging.vio.live"
         private const val CONFIG_PATH = "/v2/mobile/config"
         private const val CACHE_TTL_MILLIS: Long = 5 * 60 * 1000 // 5 minutos
 

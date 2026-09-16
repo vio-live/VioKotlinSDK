@@ -37,7 +37,7 @@ object VioSDK {
         context: Context,
         apiKey: String,
         environment: VioEnvironment = VioEnvironment.PRODUCTION,
-        baseUrl: String = "https://api-dev.vio.live",
+        baseUrl: String = "https://api-staging.vio.live",
         userId: String? = null,
     ) {
         println("🚀 [VioSDK] configure called with apiKey=${apiKey.take(8)}...")

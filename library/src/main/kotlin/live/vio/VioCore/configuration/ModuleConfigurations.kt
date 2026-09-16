@@ -284,8 +284,8 @@ data class LiveShowConfiguration(
 enum class VideoQuality { LOW, MEDIUM, HIGH, HD, AUTO }
 
 data class CampaignConfiguration(
-    val webSocketBaseURL: String = "https://api-dev.vio.live",
-    val restAPIBaseURL: String = "https://api-dev.vio.live",
+    val webSocketBaseURL: String = "https://api-staging.vio.live",
+    val restAPIBaseURL: String = "https://api-staging.vio.live",
     /**
      * API key específica para el flujo de contentId (máxima prioridad).
      * Usada por [live.vio.VioEngagementSystem.BroadcastValidationService] al llamar
