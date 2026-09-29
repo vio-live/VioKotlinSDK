@@ -254,6 +254,7 @@ object PaymentGraphQL {
         CreatePaymentGooglePay(checkout_id: ${'$'}checkoutId) {
           gateway
           gateway_merchant_id
+          stripe_account
         }
       }
     }

@@ -1441,7 +1441,8 @@ fun VioCheckoutOverlay(
                                                                     price = totalPrice,
                                                                     currency = cartManager.currency.ifBlank { "NOK" },
                                                                     shippingAddressRequired = true,
-                                                                    phoneNumberRequired = checkoutConfigState.cart.requirePhoneNumber
+                                                                    phoneNumberRequired = checkoutConfigState.cart.requirePhoneNumber,
+                                                                    stripeAccount = initDto.stripeAccount
                                                                 )
                                                                 activity?.let { act ->
                                                                      googlePayLauncher.launch(VioGooglePayManager.getGooglePayIntent(act, request, gpEnv))
@@ -2377,7 +2378,8 @@ fun VioCheckoutOverlay(
                                                                             price = totalPrice,
                                                                             currency = cartManager.currency.ifBlank { "NOK" },
                                                                             shippingAddressRequired = true,
-                                                                            phoneNumberRequired = VioConfiguration.shared.state.value.cart.requirePhoneNumber
+                                                                            phoneNumberRequired = VioConfiguration.shared.state.value.cart.requirePhoneNumber,
+                                                                            stripeAccount = initDto.stripeAccount
                                                                         )
                                                                         activity?.let { act ->
                                                                             googlePayLauncher.launch(VioGooglePayManager.getGooglePayIntent(act, request, gpEnv))

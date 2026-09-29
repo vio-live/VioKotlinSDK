@@ -134,4 +134,21 @@ class PaymentRepositoryGraphQLTest {
         assertEquals(null, result.stripeAccount)
         assertEquals("pk_test_seller", result.publishableKey)
     }
+
+    @Test
+    fun `googlePayInit carries the Connect account when there is one`() = runBlocking {
+        val data = mapOf(
+            "Payment" to mapOf(
+                "CreatePaymentGooglePay" to mapOf(
+                    "gateway" to "stripe",
+                    "gateway_merchant_id" to "pk_test_platform",
+                    "stripe_account" to "acct_1Seller"
+                )
+            )
+        )
+        coEvery { mockClient.runMutationSafe(any(), any()) } returns
+            GraphQLHttpResponse(data = data, errors = null, status = 200)
+        val result = repository.googlePayInit("checkout-1")
+        assertEquals("acct_1Seller", result.stripeAccount)
+    }
 }
