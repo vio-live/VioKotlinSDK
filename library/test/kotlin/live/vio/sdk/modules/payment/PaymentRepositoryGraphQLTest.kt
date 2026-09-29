@@ -96,4 +96,42 @@ class PaymentRepositoryGraphQLTest {
             ) 
         }
     }
+
+    @Test
+    fun `stripe intent carries the Connect account when there is one`() = runBlocking {
+        val connect = mapOf(
+            "Payment" to mapOf(
+                "CreatePaymentIntentStripe" to mapOf(
+                    "client_secret" to "pi_1_secret_x",
+                    "customer" to "cus_1",
+                    "publishable_key" to "pk_test_platform",
+                    "stripe_account" to "acct_1Seller"
+                )
+            )
+        )
+        coEvery { mockClient.runMutationSafe(any(), any()) } returns
+            GraphQLHttpResponse(data = connect, errors = null, status = 200)
+        val result = repository.stripeIntent("checkout-1", null)
+        assertEquals("acct_1Seller", result.stripeAccount)
+        coVerify { mockClient.runMutationSafe(match { it.contains("stripe_account") }, any()) }
+    }
+
+    @Test
+    fun `stripe intent without Connect has no account`() = runBlocking {
+        val plain = mapOf(
+            "Payment" to mapOf(
+                "CreatePaymentIntentStripe" to mapOf(
+                    "client_secret" to "pi_1_secret_x",
+                    "customer" to "cus_1",
+                    "publishable_key" to "pk_test_seller",
+                    "stripe_account" to null
+                )
+            )
+        )
+        coEvery { mockClient.runMutationSafe(any(), any()) } returns
+            GraphQLHttpResponse(data = plain, errors = null, status = 200)
+        val result = repository.stripeIntent("checkout-1", null)
+        assertEquals(null, result.stripeAccount)
+        assertEquals("pk_test_seller", result.publishableKey)
+    }
 }

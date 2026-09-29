@@ -1874,7 +1874,8 @@ fun VioCheckoutOverlay(
                                                                 res.onSuccess { dto ->
                                                                     if (dto != null && dto.clientSecret.isNotBlank() && dto.publishableKey.isNotBlank()) {
                                                                         PaymentSheetBridge.ensureConfigured(
-                                                                            dto.publishableKey
+                                                                            dto.publishableKey,
+                                                                            dto.stripeAccount
                                                                         )
                                                                         if (!PaymentSheetBridge.isReady()) {
                                                                             isPaymentProcessing = false
