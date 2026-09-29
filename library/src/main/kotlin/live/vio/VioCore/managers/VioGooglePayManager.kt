@@ -98,7 +98,8 @@ object VioGooglePayManager {
         price: String,
         currency: String,
         shippingAddressRequired: Boolean = false,
-        phoneNumberRequired: Boolean = false
+        phoneNumberRequired: Boolean = false,
+        stripeAccount: String? = null
     ): JSONObject {
         val cardPaymentMethod = getBaseCardPaymentMethod().apply {
             put("tokenizationSpecification", JSONObject().apply {
@@ -107,7 +108,14 @@ object VioGooglePayManager {
                     put("gateway", gateway)
                     if (gateway == "stripe") {
                         put("stripe:version", "2023-10-16")
-                        put("stripe:publishableKey", gatewayMerchantId)
+                        // Stripe Connect (ADR-0022): the token must be created on
+                        // the seller's connected account. Same format as Stripe's
+                        // own GooglePayConfig: "<publishableKey>/<acct_…>".
+                        val account = stripeAccount?.takeIf { it.startsWith("acct_") }
+                        put(
+                            "stripe:publishableKey",
+                            if (account != null) "$gatewayMerchantId/$account" else gatewayMerchantId
+                        )
                     } else {
                         put("gatewayMerchantId", gatewayMerchantId)
                     }

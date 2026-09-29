@@ -65,6 +65,8 @@ data class PaymentIntentStripeDto(
     @JsonProperty("customer") val customer: String = "",
     @JsonProperty("publishable_key") val publishableKey: String = "",
     @JsonProperty("ephemeral_key") val ephemeralKey: String? = null,
+    /** Stripe Connect (ADR-0022): the seller's connected account. Null otherwise. */
+    @JsonProperty("stripe_account") val stripeAccount: String? = null,
 )
 
 data class InitPaymentStripeDto(
@@ -179,6 +181,8 @@ data class KlarnaNativeConfirmInputDto(
 data class InitGooglePayDto(
     @JsonProperty("gateway") val gateway: String = "",
     @JsonProperty("gateway_merchant_id") val gatewayMerchantId: String = "",
+    /** Stripe Connect (ADR-0022): the seller's connected account. Null otherwise. */
+    @JsonProperty("stripe_account") val stripeAccount: String? = null,
 )
 
 data class ConfirmGooglePayDto(

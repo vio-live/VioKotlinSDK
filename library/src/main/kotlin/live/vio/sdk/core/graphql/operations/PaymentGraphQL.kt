@@ -25,6 +25,7 @@ object PaymentGraphQL {
           client_secret
           customer
           publishable_key
+          stripe_account
           ephemeral_key
         }
       }
@@ -253,6 +254,7 @@ object PaymentGraphQL {
         CreatePaymentGooglePay(checkout_id: ${'$'}checkoutId) {
           gateway
           gateway_merchant_id
+          stripe_account
         }
       }
     }

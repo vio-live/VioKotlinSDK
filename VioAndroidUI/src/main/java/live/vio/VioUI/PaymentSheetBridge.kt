@@ -8,6 +8,7 @@ import com.stripe.android.paymentsheet.PaymentSheetResult
 object PaymentSheetBridge {
     private var attachedActivity: ComponentActivity? = null
     private var currentPublishableKey: String? = null
+    private var currentStripeAccount: String? = null
     private var paymentSheet: PaymentSheet? = null
 
     /** Assignado por el caller justo antes de presentar PaymentSheet */
@@ -19,11 +20,22 @@ object PaymentSheetBridge {
         paymentSheet = PaymentSheet(activity) { result -> onResult(result) }
     }
 
-    fun ensureConfigured(publishableKey: String) {
+    /**
+     * Stripe Connect (ADR-0022): a seller on Connect charges on their
+     * connected account, and PaymentSheet can only confirm the intent by
+     * naming it. Without an account this is exactly the configuration of old.
+     */
+    fun ensureConfigured(publishableKey: String, stripeAccount: String? = null) {
         val context = attachedActivity?.applicationContext ?: return
-        if (currentPublishableKey != publishableKey) {
-            PaymentConfiguration.init(context, publishableKey)
+        val account = stripeAccount?.takeIf { it.startsWith("acct_") }
+        if (currentPublishableKey != publishableKey || currentStripeAccount != account) {
+            if (account != null) {
+                PaymentConfiguration.init(context, publishableKey, account)
+            } else {
+                PaymentConfiguration.init(context, publishableKey)
+            }
             currentPublishableKey = publishableKey
+            currentStripeAccount = account
         }
     }
 
